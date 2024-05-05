@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+name = "mggp"
+version = "2.1"
+description = ""
+authors = [
+    "henrique castro <henriquec.castro@outlook.com>",
+    "rafael ávila <rafael.santos0t5@gmail.com>",
+]
+readme = "README.md"

@@ -1,0 +1,13 @@
+Metadata-Version: 2.1
+Name: mggp
+Version: 2.1
+Author: Henrique Castro
+Author-email: henriquec.castro@outlook.com
+Requires-Dist: deap==1.4.1
+Requires-Dist: joblib==1.4.2
+Requires-Dist: numpy==1.26.4
+Requires-Dist: pluggy==1.5.0
+Requires-Dist: pytest==8.2.0
+Requires-Dist: scikit-learn==1.4.2
+Requires-Dist: scipy==1.13.0
+Requires-Dist: threadpoolctl==3.5.0
