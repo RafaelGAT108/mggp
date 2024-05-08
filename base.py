@@ -14,7 +14,7 @@ import numpy as np
 import re
 import warnings
 from sklearn.metrics import mean_squared_error
-from numba import njit, jit
+from numba import njit, cuda
 
 warnings.filterwarnings('ignore')
 from predictors import miso_OSA, miso_FreeRun, miso_MShooting
@@ -120,9 +120,10 @@ class Element(object):
                 model.append(gp.PrimitiveTree.from_string(string, self.pset))
         if self._mode == "MIMO":
             for out in listString:
-                aux = []
-                for string in out:
-                    aux.append(gp.PrimitiveTree.from_string(string, self.pset))
+                # aux = []
+                # for string in out:
+                #     aux.append(gp.PrimitiveTree.from_string(string, self.pset))
+                aux = [gp.PrimitiveTree.from_string(string, self.pset) for string in out]
                 model.append(aux)
         return model
 
@@ -186,12 +187,13 @@ class Element(object):
         if self._mode == "MISO" or self._mode == "FIR":
             model.lagMax = checkOut(model)
         if self._mode == "MIMO":
-            i = 1
-            aux = []
-            for out in model:
-                model._terminals += 'Output %d:\n\n' % (i)
-                aux.append(checkOut(out))
-                i += 1
+            # i = 1
+            # aux = []
+            for i, _ in enumerate(model):
+                model._terminals += 'Output %d:\n\n' % (i+1)
+                # aux.append(checkOut(out))
+                # i += 1
+            aux = [checkOut(out) for out in model]
             model.lagMax = max(aux)
 
     #---save-load-file-function---------------------------------------------------------
@@ -268,9 +270,20 @@ class Individual(list):
 
 #%% MISO Element Class
 @njit
-def my_function(p, yd):
-    result = np.linalg.inv(p.T @ p) @ p.T @ yd
-    return result
+def theta_miso(p, yd):
+    return np.linalg.inv(p.T @ p) @ p.T @ yd
+
+
+@njit
+def theta_mimo(p, yd):
+    return np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
+
+
+@njit
+def theta_fir(p, yd):
+    return np.linalg.inv(p.T @ p) @ p.T @ yd
+
+
 class IndividualMISO(Individual):
 
     def __init__(self, data=[]):
@@ -325,7 +338,10 @@ class IndividualMISO(Individual):
                 'Ill conditioned regressors matrix!')
         yd = y[self.lagMax + 1:]
         # self._theta = np.linalg.inv(p.T @ p) @ p.T @ yd
-        self._theta = my_function(p, yd)
+        # threadsperblock = 32
+        # blockspergrid = (p.shape[0] + (threadsperblock - 1)) // threadsperblock
+        # self._theta = my_function[blockspergrid, threadsperblock](p, yd)
+        self._theta = theta_miso(p, yd)
         if len(self._theta.shape) == 1:
             self._theta = self._theta.reshape(-1, 1)
         return self._theta
@@ -396,7 +412,8 @@ class IndividualMIMO(Individual):
                 raise np.linalg.LinAlgError(
                     'Ill conditioned regressors matrix!')
             yd = y[self.lagMax + 1:, o]
-            theta = np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
+            # theta = np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
+            theta = theta_mimo(p, yd)
             self._theta.append(theta)
         return np.array(self._theta).T
 
@@ -419,6 +436,8 @@ class IndividualMIMO(Individual):
                 aux.append(str(tree))
             listString.append(aux)
         return listString
+        # return [[str(tree) for tree in out] for out in self]
+
 
 
 #%%
@@ -466,7 +485,8 @@ class IndividualFIR(Individual):
             raise np.linalg.LinAlgError(
                 'Ill conditioned regressors matrix!')
         yd = y[self.lagMax + 1:]
-        self._theta = np.linalg.inv(p.T @ p) @ p.T @ yd
+        # self._theta = np.linalg.inv(p.T @ p) @ p.T @ yd
+        self._theta = theta_fir(p, yd)
         if len(self._theta.shape) == 1:
             self._theta = self._theta.reshape(-1, 1)
         return self._theta
@@ -480,3 +500,4 @@ class IndividualFIR(Individual):
         for tree in self:
             listString.append(str(tree))
         return listString
+
