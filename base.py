@@ -6,7 +6,7 @@ Created on Apr 2023
 """
 
 import pickle
-
+from functools import partial
 from abc import ABC, abstractmethod
 from deap import gp, creator, base, tools
 import operator
@@ -14,6 +14,7 @@ import numpy as np
 import re
 import warnings
 from sklearn.metrics import mean_squared_error
+from numba import njit, jit
 
 warnings.filterwarnings('ignore')
 from predictors import miso_OSA, miso_FreeRun, miso_MShooting
@@ -21,15 +22,8 @@ from predictors import mimo_OSA, mimo_FreeRun, mimo_MShooting
 
 
 #%% Element Class
-def _roll(*args):
-    try:
-        return np.roll(*args)
-    except np.AxisError:
-        return args[0]
-
-
-def create_roll_function(delays):
-    return [_roll for _ in delays]
+def _roll(args, i):
+    return np.roll(args, shift=i)
 
 
 class Element(object):
@@ -70,15 +64,12 @@ class Element(object):
     @property
     def pset(self):
         if self._pset == None:
-            # delays = [lambda x, i=i: _roll(x, i) for i in self._delays]
-            delays = create_roll_function(self._delays)
+            delays = [partial(_roll, i=i) for i in self._delays]
             self._pset = gp.PrimitiveSet("main", self._nVar)
             self._pset.addPrimitive(operator.mul, 2)
             #---set-one-step-ahead-pset---
 
-            # for roll in delays:
-            #     self._pset.addPrimitive(roll, 1, name='q{}'.format(
-            #         self._delays[delays.index(roll)]))
+
             [self._pset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
 
         return self._pset
@@ -86,14 +77,10 @@ class Element(object):
     @property
     def msPset(self):
         if self._mspset == None:
-            # delays = [lambda x, i=i: _roll(x, i, 1) for i in self._delays]
-            delays = create_roll_function(self._delays)
+            delays = [partial(_roll, i=i) for i in self._delays]
             self._mspset = gp.PrimitiveSet("main", self._nVar)
             self._mspset.addPrimitive(operator.mul, 2)
             #---set-one-step-ahead-pset---
-            # for roll in delays:
-            #     self._mspset.addPrimitive(roll, 1, name='q{}'.format(
-            #         self._delays[delays.index(roll)]))
 
             [self._mspset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
         return self._mspset
@@ -144,23 +131,14 @@ class Element(object):
 
     def compileModel(self, model):
         if self._mode == 'MISO' or self._mode == "FIR":
-            model._funcs = []
-            model._msfuncs = []
-            for tree in model:
-                model._funcs.append(gp.compile(tree, self.pset))
-                model._msfuncs.append(gp.compile(tree, self.msPset))
+            model._funcs = [gp.compile(tree, self.pset) for tree in model]
+            model._msfuncs = [gp.compile(tree, self.msPset) for tree in model]
             self._setModelLagMax(model)
+
         if self._mode == 'MIMO':
-            model._funcs = []
-            model._msfuncs = []
-            for out in model:
-                aux = []
-                auxms = []
-                for tree in out:
-                    aux.append(gp.compile(tree, self.pset))
-                    auxms.append(gp.compile(tree, self.msPset))
-                model._funcs.append(aux)
-                model._msfuncs.append(auxms)
+            model._funcs = [[gp.compile(tree, self.pset) for tree in out] for out in model]
+            model._msfuncs = [[gp.compile(tree, self.msPset) for tree in out] for out in model]
+
             self._setModelLagMax(model)
 
     def _setModelLagMax(self, model):
@@ -289,7 +267,10 @@ class Individual(list):
 
 
 #%% MISO Element Class
-
+@njit
+def my_function(p, yd):
+    result = np.linalg.inv(p.T @ p) @ p.T @ yd
+    return result
 class IndividualMISO(Individual):
 
     def __init__(self, data=[]):
@@ -309,12 +290,15 @@ class IndividualMISO(Individual):
         for v in u.T:
             listV.append(v[:-1].reshape(-1, 1))
 
-        p = np.ones((y.shape[0] - self.lagMax - 1, len(self) + 1))
+        # p = np.ones((y.shape[0] - self.lagMax - 1, len(self) + 1))
 
-        for i in range(len(self)):
-            func = self._funcs[i]
-            out = func(*listV)
-            p[:, i + 1] = out.reshape(-1)[self.lagMax:]
+        # for i in range(len(self)):
+        #     func = self._funcs[i]
+        #     out = func(*listV)
+        #     p[:, i + 1] = out.reshape(-1)[self.lagMax:]
+
+        p = np.array([np.ones(y.shape[0] - self.lagMax - 1) if i == 0 else
+                      self._funcs[i - 1](*listV).reshape(-1)[self.lagMax:] for i in range(len(self) + 1)]).T
         return p
 
     def predict(self, mode="OSA", *args):
@@ -340,10 +324,12 @@ class IndividualMISO(Individual):
             raise np.linalg.LinAlgError(
                 'Ill conditioned regressors matrix!')
         yd = y[self.lagMax + 1:]
-        self._theta = np.linalg.inv(p.T @ p) @ p.T @ yd
+        # self._theta = np.linalg.inv(p.T @ p) @ p.T @ yd
+        self._theta = my_function(p, yd)
         if len(self._theta.shape) == 1:
             self._theta = self._theta.reshape(-1, 1)
         return self._theta
+
 
     def __str__(self):
         string = ''.join('%s\n' * len(self)) % tuple([str(tree) for tree in self])

@@ -22,16 +22,19 @@ def evaluate(ind):
 
 # element = Element(weights=(-1,), delays=[1, 2, 3], nVars=4, nTerms=5, nOutputs=2, maxHeight=5, mode='MIMO')
 
-element = Element(weights=(-1,), delays=[1, 2, 3], nInputs=2, nTerms=5, nOutputs=2, maxHeight=5, mode='MIMO')
+element = Element(weights=(-1,), delays=[1, 2, 3],
+                  nInputs=2, nTerms=5, nOutputs=2,
+                  maxHeight=5, mode='MIMO')
 element.renameArguments({'ARG0': 'y1', 'ARG1': 'y2', 'ARG2': 'u1', 'ARG3': 'u2'})
 
-evolver = EvolDefault(element=element, evaluate=evaluate, popSize=100, elitePerc=10, CXPB=0.8, MTPB=0.1)
+evolver = EvolDefault(element=element, evaluate=evaluate,
+                      popSize=100, elitePerc=10, CXPB=0.8, MTPB=0.1)
 
 if __name__ == "__main__":
 
     pool = multiprocessing.Pool(7)
     evolver._toolbox.register("map", pool.map)
-    # evolver._toolbox.register("map", map)
+    #evolver._toolbox.register("map", map)
 
     init = time.time()
     evolver.initPop()
