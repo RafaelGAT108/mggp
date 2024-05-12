@@ -22,9 +22,10 @@ from predictors import mimo_OSA, mimo_FreeRun, mimo_MShooting
 
 
 #%% Element Class
-def _roll(args, i):
-    return np.roll(args, shift=i)
-
+# def _roll(args, i):
+#     return np.roll(args, shift=i)
+def _roll(*args, i):
+    return np.roll(*args, shift=i)
 
 class Element(object):
     def __init__(self, weights=(-1,), delays=[1, 2, 3], nInputs=1, nOutputs=1, nTerms=10, maxHeight=5, mode="MISO"):
@@ -412,10 +413,12 @@ class IndividualMIMO(Individual):
                 raise np.linalg.LinAlgError(
                     'Ill conditioned regressors matrix!')
             yd = y[self.lagMax + 1:, o]
-            # theta = np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
-            theta = theta_mimo(p, yd)
+            theta = np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
+            # theta = theta_mimo(p, yd)
             self._theta.append(theta)
-        return np.array(self._theta).T
+        # self._theta = [theta_mimo(P[o], y[self.lagMax + 1:, o]) for o in range(len(P))]
+        # return np.array(self._theta).T
+        return np.array(self._theta)
 
     def __str__(self):
         string = ''

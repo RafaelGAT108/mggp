@@ -29,9 +29,10 @@ def mimo_OSA(ind, y, u):
         u   = m-dimensional array with input data
     """
     P = ind.makeRegressors(y, u)
-    yp = []
-    for p, t in zip(P, ind.theta.T):
-        yp.append(np.dot(p, t))
+    # yp = []
+    # for p, t in zip(P, np.array(ind.theta)):
+    #     yp.append(np.dot(p, t))
+    yp = [np.dot(p, t) for p, t in zip(P, np.array(ind.theta))]
     return np.array(yp).T, y[ind.lagMax + 1:]
 
 

@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from base import Element
 from evolvers import EvolDefault
 import multiprocessing
+from sklearn.metrics import mean_squared_error
 
 '''
 ## SISO models optimization
@@ -22,7 +23,13 @@ This file presents an example of the MGGP toolbox for identification of SISO mod
 
 Consider the following model to be identified:
 '''
-
+def calculate_result(k):
+        if k >= 1:
+            model = 1 + y[k - 1] + u[k] * y[k - 1] + u[k]
+            print(f"y in k={k} is {y[k]} and de model is {model}. "
+                  f"The MSE between y and model is {mean_squared_error(y[k], model)} ")
+        else:
+            print("K must be >= 1")
 
 def sys(N):
     y1 = np.zeros((3 + N, 1))
@@ -60,10 +67,6 @@ element = Element(weights=(-1,), delays=[1, 2, 3], nInputs=1, nOutputs=1,
 element.renameArguments({'ARG0': 'y', 'ARG1': 'u'})
 
 
-# element = Element(weights=(-1,), delays=[1, 2, 3],
-#                   nInputs=2, nTerms=5, nOutputs=2,
-#                   maxHeight=5, mode='MIMO')
-# element.renameArguments({'ARG0': 'y1', 'ARG1': 'y2', 'ARG2': 'u1', 'ARG3': 'u2'})
 '''
 Now, define a cost function to assess individuals. The evaluation function receives 
 as arguments only the individual object.
@@ -97,10 +100,6 @@ def evaluation(ind):
         return (np.inf,)
     # except ValueError:
     #     return (np.inf,)
-
-# def evaluation(ind):
-#     element.compileModel(ind)
-#     return np.random.random(),
 
 
 # an exception treatment must be placed to avoid interruptions due to singular or ill conditioned regressors matrices
@@ -136,9 +135,9 @@ Follow the example:
 
 if __name__ == "__main__":
 
-    pool = multiprocessing.Pool(4)  # using 4 processor cores
-    evolver._toolbox.register("map", pool.map)
-    # evolver._toolbox.register("map", map)
+    #pool = multiprocessing.Pool(4)  # using 4 processor cores
+    #evolver._toolbox.register("map", pool.map)
+    evolver._toolbox.register("map", map)
     init = time.time()
     evolver.initPop()
     evolver.stream()
@@ -148,13 +147,13 @@ if __name__ == "__main__":
         evolver.stream()
 
     end = time.time()
-    # hof = evolver.getHof()
-    # model = hof[0]
+    hof = evolver.getHof()
+    model = hof[0]
 
     # element.compileModel(model)
     # model.theta = model.leastSquares(y, u)
 
-    # print(model)
+    print(model)
 
     print(f"time: {round(end - init, 3)} seg")
     # yp,yd = model.predict("FreeRun",y,u)
@@ -166,3 +165,10 @@ if __name__ == "__main__":
     # plt.figure()
     # plt.plot(yd[:,1])
     # plt.plot(yd[:,1])
+
+    # def calculate_result(k):
+    #     if k >= 1:
+    #         model = 1 + y[k - 1] + u[k] * y[k - 1] + u[k]
+    #         print(f"y in k={k} is {y[k]} and de model is {model}")
+    #     else:
+    #         print("K must be >= 1")
