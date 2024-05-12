@@ -5,13 +5,13 @@ from numba import njit
 import pandas as pd
 
 sys.path.insert(1, 'MGGP/')
+
 import time
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from base import Element
 from evolvers import EvolDefault
 import multiprocessing
-from sklearn.metrics import mean_squared_error
 
 # def calculate_result(k):
 #     if k >= 1:
