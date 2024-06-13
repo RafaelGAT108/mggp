@@ -260,13 +260,16 @@ class Individual(list):
         return np.nan_to_num(100 * np.sum(np.abs(yd - yp)) / (N * np.abs(np.max(yd) - np.min(yd))), nan=np.inf)
 
     def score(self, yd, yp, mode="MSE"):
-        if mode not in ["MSE", "MAPE"]:
+        if mode not in ["MSE", "MAPE", "RMSE"]:
             raise Exception("Choose a measure between:\n" +
-                            "MSE, MAPE")
+                            "MSE, MAPE, or RMSE")
         if mode == "MSE":
             return mean_squared_error(yd, yp)
         if mode == "MAPE":
             return self._mape(yd, yp)
+        if mode == "RMSE":
+            return np.sqrt(mean_squared_error(yd, yp))
+
 
     @abstractmethod
     def model2List(self):
