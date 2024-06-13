@@ -65,25 +65,29 @@ class Element(object):
     @property
     def pset(self):
         if self._pset == None:
+            self._delays = np.array([1, 2, 3, 5, 10, 15, 25, 50])
             delays = [partial(_roll, i=i) for i in self._delays]
             self._pset = gp.PrimitiveSet("main", self._nVar)
             self._pset.addPrimitive(operator.mul, 2)
             #---set-one-step-ahead-pset---
 
 
-            [self._pset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
+            # [self._pset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
+            [self._pset.addPrimitive(roll, 1, name=f'q{i}') for i, roll in zip(self._delays, delays)]
 
         return self._pset
 
     @property
     def msPset(self):
         if self._mspset == None:
+            self._delays = np.array([1, 2, 3, 5, 10, 15, 25, 50])
             delays = [partial(_roll, i=i) for i in self._delays]
             self._mspset = gp.PrimitiveSet("main", self._nVar)
             self._mspset.addPrimitive(operator.mul, 2)
             #---set-one-step-ahead-pset---
 
-            [self._mspset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
+            # [self._mspset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
+            [self._mspset.addPrimitive(roll, 1, name=f'q{i}') for i, roll in zip(self._delays, delays)]
         return self._mspset
 
     @property
