@@ -28,12 +28,12 @@ def _roll(*args, i):
     return np.roll(*args, shift=i)
 
 class Element(object):
-    def __init__(self, weights=(-1,), delays=[1, 2, 3], nInputs=1, nOutputs=1, nTerms=10, maxHeight=5, mode="MISO"):
+    def __init__(self, weights=(-1,), nDelays=3, nInputs=1, nOutputs=1, nTerms=10, maxHeight=5, mode="MISO"):
         self._mspset: gp.PrimitiveSet = None
         self._pset: gp.PrimitiveSet = None
         self._toolbox: base.Toolbox = None
 
-        self._delays = delays
+        self._delays = np.arange(1, nDelays + 1)
         self._nVar = nInputs + nOutputs
         self._weights = weights
         self._nTerms = nTerms
