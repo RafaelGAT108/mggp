@@ -275,6 +275,16 @@ class Individual(list):
     def model2List(self):
         pass
 
+    def to_equation(self):
+        string = ''
+        for j, out in enumerate(self):
+            string += f'\n\n Output %d:\n y_{j + 1}[k] = {self.theta[j][0]:.4e} ' % (j + 1)
+            # for k, tree in enumerate(out):
+            #      string += f'+ {self.theta[j][k+1]}*{str(tree)} '
+            string += ''.join([f'+ {self.theta[j][k + 1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
+            string += '\n'
+        return string
+
 
 #%% MISO Element Class
 @njit
