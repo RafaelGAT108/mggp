@@ -174,7 +174,7 @@ class Element(object):
                     elif type(tree[i]) == gp.Terminal:
                         if branches == []:
                             lag = count
-                            model._terminals += tree[i].value + '[i-%d] ' % (count + 1)
+                            model._terminals += str(tree[i].value) + '[i-%d] ' % (count + 1)
                         else:
                             branches[-1][2] += 1
                             lag = count + sum([item[0] for item in branches])
