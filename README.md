@@ -7,4 +7,4 @@ All basic requirements are in the file `requirements.txt`. To install everything
 ```
 
 
-# mggp
+The main file of F-16 MIMO is `f16_mimo.py`
