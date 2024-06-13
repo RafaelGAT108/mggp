@@ -6,6 +6,8 @@ Created on Jun 2023
 """
 
 import numpy as np
+import pandas as pd
+from numba import njit
 
 
 def miso_OSA(ind, y, u):
@@ -94,7 +96,7 @@ def mimo_FreeRun(ind, y0, u):
                 out = func(*listV)
                 p.append(out.reshape(-1))
             p = np.array(p).T[ind.lagMax:]
-            aux.append(np.dot(p, ind.theta.T[o]))
+            aux.append(np.dot(p, ind.theta[o].T))
         y = np.vstack([y, np.array(aux).reshape(1, -1)])
     return y[:-1], y0
 
@@ -182,6 +184,8 @@ def mimo_MShooting(ind, k, y, u):
                 out = out[:, ind.lagMax:, :]
                 p.append(out)
             p = np.concatenate(p, axis=2)
-            aux.append(np.dot(p, ind.theta.T[o]).reshape(-1, 1, 1))
+            # aux.append(np.dot(p, ind.theta.T[o]).reshape(-1, 1, 1))
+            aux.append(np.dot(p, ind.theta[o].T).reshape(-1, 1, 1))
+
         y0 = np.concatenate((y0, np.concatenate(aux, axis=2)), axis=1)
-    return y0.reshape(-1, y.shape[1]), yk.reshape(-1, y.shape[1])
+    return np.nan_to_num(y0.reshape(-1, y.shape[1]), nan=0), np.nan_to_num(yk.reshape(-1, y.shape[1]), nan=0)
