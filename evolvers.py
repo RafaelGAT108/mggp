@@ -156,6 +156,12 @@ class EvolDefault(Evolver):
                 self._delAttr(offspring[i])
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        # results = []
+        # for ind in invalid_ind:
+        #     results.append(self._toolbox.map(self._toolbox.evaluate, (ind,)))
+        #
+        # fitnesses = [output.get() for output in results if output.get() != 'error']
+
         fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
