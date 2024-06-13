@@ -98,7 +98,7 @@ class Element(object):
                                    min_=0, max_=self._maxHeight)
             self._toolbox.register("_program", tools.initIterate,
                                    creator.Program, self._toolbox._expr)
-            if self._mode == "MISO":
+            if self._mode == "MISO" or self._mode == "FIR":
                 self._toolbox.register("individual", tools.initRepeat, creator.Individual,
                                        self._toolbox._program, self._nTerms)
             if self._mode == "MIMO":
