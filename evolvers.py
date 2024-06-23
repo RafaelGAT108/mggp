@@ -5,28 +5,22 @@ Created on Mon Apr 24 15:35:02 2023
 @author: henrique
 """
 import warnings
-
-warnings.filterwarnings("ignore")
-
-from abc import ABC, abstractmethod
-
-from deap import tools, base
-
 import numpy as np
-
 import random
-
+from abc import ABC, abstractmethod
+from deap import tools, base
 from copy import deepcopy
-
 from mutations import *
 from crossings import *
+
+warnings.filterwarnings("ignore")
 
 
 class Evolver(ABC):
     def __init__(self, element, evaluate, popSize):
-        if evaluate == None:
+        if evaluate is None:
             raise Exception('It needs an evaluation function!')
-        if element == None:
+        if element is None:
             raise Exception('It needs an element module!')
 
         self._pop = []
@@ -112,11 +106,6 @@ class EvolDefault(Evolver):
             self._pop = self._element._toolbox.population(self._popSize - len(seed))
             self._pop += seed
         invalid_ind = [ind for ind in self._pop if not ind.fitness.valid]
-        # results = []
-        # for ind in invalid_ind:
-        #     results.append(self._toolbox.map(self._toolbox.evaluate, (ind,)))
-        #
-        # fitnesses = [output.get() for output in results if output.get() != 'error']
         fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
@@ -137,9 +126,6 @@ class EvolDefault(Evolver):
         if self._pop == []:
             raise Exception('Population must be initialized!')
 
-        # offspring = list(map(deepcopy,
-        #                      self._toolbox.select(self._pop, self._popSize - self._hofSize)))
-
         offspring = [deepcopy(ind) for ind in self._toolbox.select(self._pop, self._popSize - self._hofSize)]
 
         for i in range(0, len(offspring) - 1, 2):
@@ -156,12 +142,6 @@ class EvolDefault(Evolver):
                 self._delAttr(offspring[i])
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        # results = []
-        # for ind in invalid_ind:
-        #     results.append(self._toolbox.map(self._toolbox.evaluate, (ind,)))
-        #
-        # fitnesses = [output.get() for output in results if output.get() != 'error']
-
         fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
