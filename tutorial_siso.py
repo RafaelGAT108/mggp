@@ -49,7 +49,7 @@ and to create and compile it.
 The Element class receives seven arguments:
 (with default setting)<br />
 1. wheights  = (-1,) - defines the type of optimization (negative for minimization, 
-                        positive for maximization). It must be a tupple.
+                        positive for maximization). It must be a tuple.
 2. delays    = [1,2,3] - a list of positive integer numbers that will define the 
                         backshift operators q^{-n}, for n in delays.
 3. nInputs   = 2 - number of inputs in the system.
