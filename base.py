@@ -15,10 +15,10 @@ import re
 import warnings
 from sklearn.metrics import mean_squared_error
 from numba import njit, cuda
-
-warnings.filterwarnings('ignore')
 from predictors import miso_OSA, miso_FreeRun, miso_MShooting
 from predictors import mimo_OSA, mimo_FreeRun, mimo_MShooting
+
+warnings.filterwarnings('ignore')
 
 
 #%% Element Class
@@ -26,6 +26,7 @@ from predictors import mimo_OSA, mimo_FreeRun, mimo_MShooting
 #     return np.roll(args, shift=i)
 def _roll(*args, i):
     return np.roll(*args, shift=i)
+
 
 class Element(object):
     def __init__(self, weights=(-1,), nDelays=3, nInputs=1, nOutputs=1, nTerms=10, maxHeight=5, mode="MISO"):
@@ -64,13 +65,12 @@ class Element(object):
 
     @property
     def pset(self):
-        if self._pset == None:
+        if self._pset is None:
             self._delays = np.array([1, 2, 3, 5, 10, 15, 25, 50])
             delays = [partial(_roll, i=i) for i in self._delays]
             self._pset = gp.PrimitiveSet("main", self._nVar)
             self._pset.addPrimitive(operator.mul, 2)
             #---set-one-step-ahead-pset---
-
 
             # [self._pset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
             [self._pset.addPrimitive(roll, 1, name=f'q{i}') for i, roll in zip(self._delays, delays)]
@@ -79,12 +79,12 @@ class Element(object):
 
     @property
     def msPset(self):
-        if self._mspset == None:
+        if self._mspset is None:
             self._delays = np.array([1, 2, 3, 5, 10, 15, 25, 50])
             delays = [partial(_roll, i=i) for i in self._delays]
             self._mspset = gp.PrimitiveSet("main", self._nVar)
             self._mspset.addPrimitive(operator.mul, 2)
-            #---set-one-step-ahead-pset---
+            # ---set-one-step-ahead-pset---
 
             # [self._mspset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
             [self._mspset.addPrimitive(roll, 1, name=f'q{i}') for i, roll in zip(self._delays, delays)]
@@ -92,7 +92,7 @@ class Element(object):
 
     @property
     def toolbox(self):
-        if self._toolbox == None:
+        if self._toolbox is None:
             self._toolbox = base.Toolbox()
             self._toolbox.register("_expr", gp.genHalfAndHalf, pset=self._pset,
                                    min_=0, max_=self._maxHeight)
@@ -125,9 +125,6 @@ class Element(object):
                 model.append(gp.PrimitiveTree.from_string(string, self.pset))
         if self._mode == "MIMO":
             for out in listString:
-                # aux = []
-                # for string in out:
-                #     aux.append(gp.PrimitiveTree.from_string(string, self.pset))
                 aux = [gp.PrimitiveTree.from_string(string, self.pset) for string in out]
                 model.append(aux)
         return model
@@ -178,7 +175,8 @@ class Element(object):
                         else:
                             branches[-1][2] += 1
                             lag = count + sum([item[0] for item in branches])
-                            model._terminals += tree[i].value + '[i-%d] ' % (count + 1 + sum([item[0] for item in branches]))
+                            model._terminals += tree[i].value + '[i-%d] ' % (
+                                        count + 1 + sum([item[0] for item in branches]))
                         if lag > lagMax:
                             lagMax = lag
                         count = 0
@@ -195,7 +193,7 @@ class Element(object):
             # i = 1
             # aux = []
             for i, _ in enumerate(model):
-                model._terminals += 'Output %d:\n\n' % (i+1)
+                model._terminals += 'Output %d:\n\n' % (i + 1)
                 # aux.append(checkOut(out))
                 # i += 1
             aux = [checkOut(out) for out in model]
@@ -269,7 +267,6 @@ class Individual(list):
             return self._mape(yd, yp)
         if mode == "RMSE":
             return np.sqrt(mean_squared_error(yd, yp))
-
 
     @abstractmethod
     def model2List(self):
@@ -356,14 +353,10 @@ class IndividualMISO(Individual):
                 'Ill conditioned regressors matrix!')
         yd = y[self.lagMax + 1:]
         # self._theta = np.linalg.inv(p.T @ p) @ p.T @ yd
-        # threadsperblock = 32
-        # blockspergrid = (p.shape[0] + (threadsperblock - 1)) // threadsperblock
-        # self._theta = my_function[blockspergrid, threadsperblock](p, yd)
         self._theta = theta_miso(p, yd)
         if len(self._theta.shape) == 1:
             self._theta = self._theta.reshape(-1, 1)
         return self._theta
-
 
     def __str__(self):
         string = ''.join('%s\n' * len(self)) % tuple([str(tree) for tree in self])
@@ -440,10 +433,10 @@ class IndividualMIMO(Individual):
     def to_equation(self):
         string = ''
         for j, out in enumerate(self):
-            string += f'\n\n Output %d:\n y_{j+1}[k] = {self.theta[j][0]:.4e} ' % (j+1)
+            string += f'\n\n Output %d:\n y_{j + 1}[k] = {self.theta[j][0]:.4e} ' % (j + 1)
             # for k, tree in enumerate(out):
             #      string += f'+ {self.theta[j][k+1]}*{str(tree)} '
-            string += ''.join([f'+ {self.theta[j][k+1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
+            string += ''.join([f'+ {self.theta[j][k + 1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
             string += '\n'
         return string
 
@@ -459,18 +452,9 @@ class IndividualMIMO(Individual):
         return string
 
     def model2List(self):
-        listString = []
-        for out in self:
-            aux = []
-            for tree in out:
-                aux.append(str(tree))
-            listString.append(aux)
-        return listString
-        # return [[str(tree) for tree in out] for out in self]
+        return [[str(tree) for tree in out] for out in self]
 
 
-
-#%%
 class IndividualFIR(Individual):
 
     def __init__(self, data=[]):
@@ -526,8 +510,8 @@ class IndividualFIR(Individual):
         return '1\n' + string
 
     def model2List(self):
-        listString = []
-        for tree in self:
-            listString.append(str(tree))
-        return listString
-
+        return [str(tree) for tree in self]
+        # listString = []
+        # for tree in self:
+        #     listString.append(str(tree))
+        # return listString
