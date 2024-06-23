@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Tuple, Optional, Any
 import numpy as np
 from base import Element
 from evolvers import EvolDefault
@@ -12,6 +12,7 @@ class MGGP:
                  inputs: np.ndarray,
                  outputs: np.ndarray,
                  generations: int,
+                 validation: Optional[Tuple[np.ndarray, np.ndarray]] = (None, None),
                  evaluationMode: Literal['RMSE', 'MSE', 'MAPE'] = 'RMSE',
                  evaluationType: Literal['OSA', 'MShooting', 'FreeRun'] = 'MShooting',
                  k: int = 5,
@@ -24,8 +25,28 @@ class MGGP:
                  populationSize: int = 100,
                  elitePercentage: int = 10
                  ):
+        """
+        Args:
+            inputs (ndarray): The inputs in the system. Each column represent an input.
+            outputs (ndarray): The outputs in the system. Each column represent an output.
+            generations (int): Number of generations to train the model.
+            validation (Optional[Tuple[np.ndarray, np.ndarray]]): Inputs and outputs to validate the model. Must be a tuple (inputs, outputs).
+            evaluationMode (Literal['RMSE', 'MSE', 'MAPE']):  Mode to evaluate the models and ranking the better.
+            evaluationType (Literal['OSA', 'MShooting', 'FreeRun']): One-Step-Ahead, Multiple-Shooting and Free-Run predictors.
+            k (int): Used with Multiple-Shooting predictor. Define the number of shooting.
+            nTerms (int): Number of terms each output model will possess.
+            maxHeight (int): Maximum height of Genetic Program individual.
+            weights (tuple): Defines the type of optimization (-1 for minimization, 1 for maximization). It must be a tuple.
+            nDelays (float | Literal['fixed']): The number that will define the backshift operators q^{-n}, for n in delays.
+            crossoverRate (float): Crossover probability.
+            mutationRate (float): Mutation probability.
+            populationSize (int): Population size.
+            elitePercentage (int): Percentile of population to be kept in the next generation.
+        """
+
         self.inputs = inputs
         self.outputs = outputs
+        self.validation = validation
         self.nInputs = self.inputs.shape[1]
         self.nOutputs = self.outputs.shape[1]
         self.generations = generations
@@ -74,7 +95,7 @@ class MGGP:
         return arguments
 
     # @staticmethod
-    def evaluation(self, ind):
+    def evaluation(self, ind) -> tuple[float]:
         try:
             self.element.compileModel(ind)
             theta_value = ind.leastSquares(self.outputs, self.inputs)
@@ -92,9 +113,9 @@ class MGGP:
         except np.linalg.LinAlgError:
             return (np.inf,)
 
-    def run(self):
-        #pool = multiprocessing.Pool(6)  # using 4 processor cores
-        #self.evolver._toolbox.register("map", pool.map)
+    def run(self) -> None:
+        # pool = multiprocessing.Pool(6)  # using 4 processor cores
+        # self.evolver._toolbox.register("map", pool.map)
         self.evolver._toolbox.register("map", map)
 
         init = time.time()
@@ -105,7 +126,6 @@ class MGGP:
             self.evolver.step()
             self.evolver.stream()
 
-        end = time.time()
         hof = self.evolver.getHof()
         model = hof[0]
 
@@ -115,4 +135,22 @@ class MGGP:
         print(model)
         # print(model.to_equation())
         print(model._theta)
-        print(f"time: {round(end - init, 3)} seg")
+
+        if all([value is not None for value in self.validation]):
+            u_val, y_val = self.validation
+
+            if u_val.shape[1] != self.nInputs:
+                raise Exception("the number os inputs to validate and to train, must have the same length")
+
+            if y_val.shape[1] != self.nOutputs:
+                raise Exception("the number os outputs to validate and to train, must have the same length")
+
+            if self.evaluationType == "MShooting":
+                yp, yd = model.predict("MShooting", self.k, y_val, u_val)
+            else:
+                yp, yd = model.predict(self.evaluationType, self.outputs, self.inputs)
+            error = round(model.score(yd, yp, self.evaluationMode), 6)
+            print(f"{self.evaluationMode} in validation dataset: {error}")
+
+        end = time.time()
+        print(f"Executed in: {round(end - init, 3)} seg")
