@@ -135,14 +135,11 @@ class Element(object):
     def compileModel(self, model):
         if self._mode == 'MISO' or self._mode == "FIR":
             model._funcs = [gp.compile(tree, self.pset) for tree in model]
-            model._msfuncs = [gp.compile(tree, self.msPset) for tree in model]
-            self._setModelLagMax(model)
 
         if self._mode == 'MIMO':
             model._funcs = [[gp.compile(tree, self.pset) for tree in out] for out in model]
-            model._msfuncs = [[gp.compile(tree, self.msPset) for tree in out] for out in model]
 
-            self._setModelLagMax(model)
+        self._setModelLagMax(model)
 
     def _setModelLagMax(self, model):
         def checkbranch(branch):
@@ -176,7 +173,7 @@ class Element(object):
                             branches[-1][2] += 1
                             lag = count + sum([item[0] for item in branches])
                             model._terminals += tree[i].value + '[i-%d] ' % (
-                                        count + 1 + sum([item[0] for item in branches]))
+                                    count + 1 + sum([item[0] for item in branches]))
                         if lag > lagMax:
                             lagMax = lag
                         count = 0
@@ -190,12 +187,8 @@ class Element(object):
         if self._mode == "MISO" or self._mode == "FIR":
             model.lagMax = checkOut(model)
         if self._mode == "MIMO":
-            # i = 1
-            # aux = []
             for i, _ in enumerate(model):
                 model._terminals += 'Output %d:\n\n' % (i + 1)
-                # aux.append(checkOut(out))
-                # i += 1
             aux = [checkOut(out) for out in model]
             model.lagMax = max(aux)
 
@@ -217,21 +210,22 @@ class Individual(list):
     def __init__(self, data=[]):
         super().__init__(data)
         self._funcs = []
-        self._msfuncs = []
+        # self._msfuncs = []
         self._lagMax = None
-        self._theta = []
+        self._theta = np.array([])
         self._terminals = ''
         self._nTerms = 0
 
     @property
     def theta(self):
-        if self._theta == []:
-            raise Exception("Parameters \'theta\' are not defined!")
+        # if self._theta == np.ndarray([]):
+        #     raise Exception("Parameters \'theta\' are not defined!")
         return self._theta
 
     @theta.setter
     def theta(self, theta):
-        self._theta = np.array(theta)
+        # self._theta = np.array(theta)
+        self._theta = theta
 
     @property
     def lagMax(self):
@@ -289,7 +283,7 @@ def theta_miso(p, yd):
     return np.linalg.inv(p.T @ p) @ p.T @ yd
 
 
-@njit
+# @njit
 def theta_mimo(p, yd):
     return np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
 
@@ -318,15 +312,15 @@ class IndividualMISO(Individual):
         for v in u.T:
             listV.append(v[:-1].reshape(-1, 1))
 
-        # p = np.ones((y.shape[0] - self.lagMax - 1, len(self) + 1))
+        p = np.ones((y.shape[0] - self.lagMax - 1, len(self) + 1))
 
-        # for i in range(len(self)):
-        #     func = self._funcs[i]
-        #     out = func(*listV)
-        #     p[:, i + 1] = out.reshape(-1)[self.lagMax:]
+        for i in range(len(self)):
+            func = self._funcs[i]
+            out = func(*listV)
+            p[:, i + 1] = out.reshape(-1)[self.lagMax:]
 
-        p = np.array([np.ones(y.shape[0] - self.lagMax - 1) if i == 0 else
-                      self._funcs[i - 1](*listV).reshape(-1)[self.lagMax:] for i in range(len(self) + 1)]).T
+        # p = np.array([np.ones(y.shape[0] - self.lagMax - 1) if i == 0 else
+        #               self._funcs[i - 1](*listV).reshape(-1)[self.lagMax:] for i in range(len(self) + 1)]).T
         return p
 
     def predict(self, mode="OSA", *args):
@@ -511,7 +505,3 @@ class IndividualFIR(Individual):
 
     def model2List(self):
         return [str(tree) for tree in self]
-        # listString = []
-        # for tree in self:
-        #     listString.append(str(tree))
-        # return listString
