@@ -41,9 +41,15 @@ class Element(object):
                  mode="MISO"):
         self._pset: gp.PrimitiveSet = None
         self._toolbox: base.Toolbox = None
-
-        self._delays = np.arange(1, nDelays + 1)
         self._nVar = nInputs + nOutputs
+
+        if type(nDelays) is int:
+            self._delays = np.arange(1, nDelays + 1)
+        elif type(nDelays) is list:
+            self._delays = nDelays
+
+        self.iniciatePrimitivesSets()
+
         self._weights = weights
         self._nTerms = nTerms
         self._nOutputs = nOutputs
