@@ -79,7 +79,8 @@ class Element(object):
         self._pset = gp.PrimitiveSet("main", self._nVar)
         self._pset.addPrimitive(operator.mul, 2)
 
-        return self._pset
+        for i, roll in zip(self._delays, delays):
+            self._pset.addPrimitive(roll, 1, name=f'q{i}')
 
     def iniciateToolbox(self):
         self._toolbox = base.Toolbox()
@@ -108,11 +109,9 @@ class Element(object):
 
     def renameArguments(self, dictionary={'ARG0': 'y', 'ARG1': 'u'}):
         self._pset.renameArguments(**dictionary)
-        self._mspset.renameArguments(**dictionary)
 
     def addPrimitive(self, *args):
         self._pset.addPrimitive(*args)
-        self._mspset.addPrimitive(*args)
 
     def buildModelFromList(self, listString):
         model = creator.Individual()
