@@ -396,18 +396,20 @@ class IndividualMIMO(Individual):
         must be in column formm.
         '''
         P = self.makeRegressors(y, u)
-        for o in range(len(P)):
-            p = P[o]
-            if np.linalg.cond(p, -2) < 1e-10:
-                raise np.linalg.LinAlgError(
-                    'Ill conditioned regressors matrix!')
-            yd = y[self.lagMax + 1:, o]
-            theta = np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
+        # for o in range(len(P)):
+        #     p = P[o]
+        #     if np.linalg.cond(p, -2) < 1e-10:
+        #         raise np.linalg.LinAlgError(
+        #             'Ill conditioned regressors matrix!')
+        #     yd = y[self.lagMax + 1:, o]
+        #     theta = np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
             # theta = theta_mimo(p, yd)
-            self._theta.append(theta)
-        # self._theta = [theta_mimo(P[o], y[self.lagMax + 1:, o]) for o in range(len(P))]
+            # self._theta.append(theta)
+            # np.append(self._theta, theta)
+        self._theta = np.array([theta_mimo(P[o], y[self.lagMax + 1:, o]) for o in range(len(P))])
         # return np.array(self._theta).T
-        return np.array(self._theta)
+        # return np.array(self._theta)
+        return self._theta
 
     def to_equation(self):
         string = ''
