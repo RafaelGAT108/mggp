@@ -352,7 +352,9 @@ class IndividualMISO(Individual):
         listString = []
         for tree in self:
             listString.append(str(tree))
-        return listString
+        # return listString
+        return [str(tree) for tree in self]
+
 
 
 class IndividualMIMO(Individual):
