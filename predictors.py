@@ -34,7 +34,7 @@ def mimo_OSA(ind, y, u):
     # yp = []
     # for p, t in zip(P, np.array(ind.theta)):
     #     yp.append(np.dot(p, t))
-    yp = [np.dot(p, t) for p, t in zip(P, np.array(ind.theta))]
+    yp = [np.dot(p, t) for p, t in zip(P, np.array(ind._theta))]
     return np.array(yp).T, y[ind.lagMax + 1:]
 
 
@@ -65,7 +65,7 @@ def miso_FreeRun(ind, y0, u):
             p.append(out.reshape(-1))
         p = np.array(p).T[ind.lagMax:]
         y = np.vstack((y, np.dot(p, ind.theta)))
-    return y[:-1], y0
+    return np.nan_to_num(y[:-1], nan=0), np.nan_to_num(y0, nan=0)
 
 
 def mimo_FreeRun(ind, y0, u):
@@ -79,7 +79,7 @@ def mimo_FreeRun(ind, y0, u):
     if len(u.shape) == 1:
         u = u.reshape(-1, 1)
 
-    y = y0[:ind.lagMax + 1]
+    y = y0[:, :ind.lagMax + 1]
 
     for i in range(u.shape[0] - ind.lagMax):
         listV = []
@@ -96,9 +96,10 @@ def mimo_FreeRun(ind, y0, u):
                 out = func(*listV)
                 p.append(out.reshape(-1))
             p = np.array(p).T[ind.lagMax:]
-            aux.append(np.dot(p, ind.theta[o].T))
+            aux.append(np.dot(p, ind._theta[o].T))
+
         y = np.vstack([y, np.array(aux).reshape(1, -1)])
-    return y[:-1], y0
+    return y[-(y0.shape[0]+1):-1], y0
 
 
 def miso_MShooting(ind, k, y, u):
@@ -128,7 +129,7 @@ def miso_MShooting(ind, k, y, u):
         out = np.ones((n_batchs, 1, 1))
         p.append(out)
         for j in range(len(ind)):
-            func = ind._msfuncs[j]
+            func = ind._funcs[j]
             listV = [y0[:, i:i + ind.lagMax + 1, :]]
             for v in listU:
                 listV.append(v[:, i:i + ind.lagMax + 1, :])
@@ -179,13 +180,13 @@ def mimo_MShooting(ind, k, y, u):
             out = np.ones((n_batchs, 1, 1))
             p.append(out)
             for j in range(len(ind[o])):
-                func = ind._msfuncs[o][j]
+                func = ind._funcs[o][j]
                 out = func(*listV)
                 out = out[:, ind.lagMax:, :]
                 p.append(out)
             p = np.concatenate(p, axis=2)
             # aux.append(np.dot(p, ind.theta.T[o]).reshape(-1, 1, 1))
-            aux.append(np.dot(p, ind.theta[o].T).reshape(-1, 1, 1))
+            aux.append(np.dot(p, ind._theta[o].T).reshape(-1, 1, 1))
 
         y0 = np.concatenate((y0, np.concatenate(aux, axis=2)), axis=1)
     return np.nan_to_num(y0.reshape(-1, y.shape[1]), nan=0), np.nan_to_num(yk.reshape(-1, y.shape[1]), nan=0)
