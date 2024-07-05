@@ -8,6 +8,8 @@ Created on Apr 2023
 import pickle
 from functools import partial
 from abc import ABC, abstractmethod
+from typing import List
+
 from deap import gp, creator, base, tools
 import operator
 import numpy as np
@@ -29,8 +31,14 @@ def _roll(*args, i):
 
 
 class Element(object):
-    def __init__(self, weights=(-1,), nDelays=3, nInputs=1, nOutputs=1, nTerms=10, maxHeight=5, mode="MISO"):
-        self._mspset: gp.PrimitiveSet = None
+    def __init__(self,
+                 weights: tuple = (-1,),
+                 nDelays: int | List = 3,
+                 nInputs: int = 1,
+                 nOutputs: int = 1,
+                 nTerms: int = 10,
+                 maxHeight: int = 5,
+                 mode="MISO"):
         self._pset: gp.PrimitiveSet = None
         self._toolbox: base.Toolbox = None
 
