@@ -72,7 +72,7 @@ class Element(object):
         else:
             raise Exception("Choose a mode between:\n" +
                             "MISO, MIMO, FIR")
-        self.toolbox
+        self.iniciateToolbox()
 
     def getMode(self):
         return self._mode
@@ -91,37 +91,29 @@ class Element(object):
 
         return self._pset
 
-    @property
-    def msPset(self):
-        if self._mspset is None:
-            self._delays = np.array([1, 2, 3, 5, 10, 15, 25, 50])
-            delays = [partial(_roll, i=i) for i in self._delays]
-            self._mspset = gp.PrimitiveSet("main", self._nVar)
-            self._mspset.addPrimitive(operator.mul, 2)
-            # ---set-one-step-ahead-pset---
+    def iniciateToolbox(self):
+        self._toolbox = base.Toolbox()
+        self._toolbox.register("_expr", gp.genHalfAndHalf, pset=self._pset,
+                               min_=0, max_=self._maxHeight)
+        self._toolbox.register("_program", tools.initIterate,
+                               creator.Program, self._toolbox._expr)
+        if self._mode == "MISO" or self._mode == "FIR":
+            self._toolbox.register("individual", tools.initRepeat, creator.Individual,
+                                   self._toolbox._program, self._nTerms)
+        if self._mode == "MIMO":
+            self._toolbox.register("_outputs", tools.initRepeat, list,
+                                   self._toolbox._program, self._nTerms)
+            self._toolbox.register("individual", tools.initRepeat, creator.Individual,
+                                   self._toolbox._outputs, self._nOutputs)
+        self._toolbox.register("population", tools.initRepeat, list,
+                               self._toolbox.individual)
 
-            # [self._mspset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
-            [self._mspset.addPrimitive(roll, 1, name=f'q{i}') for i, roll in zip(self._delays, delays)]
-        return self._mspset
+    @property
+    def pset(self):
+        return self._pset
 
     @property
     def toolbox(self):
-        if self._toolbox is None:
-            self._toolbox = base.Toolbox()
-            self._toolbox.register("_expr", gp.genHalfAndHalf, pset=self._pset,
-                                   min_=0, max_=self._maxHeight)
-            self._toolbox.register("_program", tools.initIterate,
-                                   creator.Program, self._toolbox._expr)
-            if self._mode == "MISO" or self._mode == "FIR":
-                self._toolbox.register("individual", tools.initRepeat, creator.Individual,
-                                       self._toolbox._program, self._nTerms)
-            if self._mode == "MIMO":
-                self._toolbox.register("_outputs", tools.initRepeat, list,
-                                       self._toolbox._program, self._nTerms)
-                self._toolbox.register("individual", tools.initRepeat, creator.Individual,
-                                       self._toolbox._outputs, self._nOutputs)
-            self._toolbox.register("population", tools.initRepeat, list,
-                                   self._toolbox.individual)
         return self._toolbox
 
     def renameArguments(self, dictionary={'ARG0': 'y', 'ARG1': 'u'}):
