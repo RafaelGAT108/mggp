@@ -235,12 +235,18 @@ class Individual(list):
         pass
 
     @abstractmethod
-    def predict(self, mode, *args):
-        pass
-
-    @abstractmethod
     def leastSquares(self, y, u):
         pass
+
+    def predict(self, mode="OSA", *args):
+        if mode == "OSA":
+            return mimo_OSA(self, *args)
+        if mode == "FreeRun":
+            return mimo_FreeRun(self, *args)
+        if mode == "MShooting":
+            return mimo_MShooting(self, *args)
+        else:
+            raise Exception("Choose a mode between: OSA, FreeRun, MShooting")
 
     def _mape(self, yd, yp):
         N = yd.shape[0]
@@ -318,15 +324,6 @@ class IndividualMISO(Individual):
         #               self._funcs[i - 1](*listV).reshape(-1)[self.lagMax:] for i in range(len(self) + 1)]).T
         return p
 
-    def predict(self, mode="OSA", *args):
-        if mode == "OSA":
-            return miso_OSA(self, *args)
-        if mode == "FreeRun":
-            return miso_FreeRun(self, *args)
-        if mode == "MShooting":
-            return miso_MShooting(self, *args)
-        else:
-            raise Exception("Choose a mode between: OSA, FreeRun, MShooting")
 
     def leastSquares(self, y, u):
         '''
@@ -387,15 +384,6 @@ class IndividualMIMO(Individual):
             P.append(p)
         return P
 
-    def predict(self, mode="OSA", *args):
-        if mode == "OSA":
-            return mimo_OSA(self, *args)
-        if mode == "FreeRun":
-            return mimo_FreeRun(self, *args)
-        if mode == "MShooting":
-            return mimo_MShooting(self, *args)
-        else:
-            raise Exception("Choose a mode between: OSA, FreeRun, MShooting")
 
     def leastSquares(self, y, u):
         '''
@@ -464,16 +452,6 @@ class IndividualFIR(Individual):
             out = func(*listV)
             p[:, i + 1] = out.reshape(-1)[self.lagMax:]
         return p
-
-    def predict(self, mode="OSA", *args):
-        if mode == "OSA":
-            return miso_OSA(self, *args)
-        if mode == "FreeRun":
-            return miso_FreeRun(self, *args)
-        if mode == "MShooting":
-            return miso_MShooting(self, *args)
-        else:
-            raise Exception("Choose a mode between: OSA, FreeRun, MShooting")
 
     def leastSquares(self, y, u):
         '''
