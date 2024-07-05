@@ -56,9 +56,6 @@ class Element(object):
         self._maxHeight = maxHeight
         self._mode = mode.upper()
 
-        self.msPset
-        self.pset
-
         creator.create("Program", gp.PrimitiveTree, fitness=None,
                        pset=self.pset)
         creator.create("FitnessMin", base.Fitness, weights=self._weights)
@@ -77,17 +74,10 @@ class Element(object):
     def getMode(self):
         return self._mode
 
-    @property
-    def pset(self):
-        if self._pset is None:
-            self._delays = np.array([1, 2, 3, 5, 10, 15, 25, 50])
-            delays = [partial(_roll, i=i) for i in self._delays]
-            self._pset = gp.PrimitiveSet("main", self._nVar)
-            self._pset.addPrimitive(operator.mul, 2)
-            #---set-one-step-ahead-pset---
-
-            # [self._pset.addPrimitive(roll, 1, name=f'q{i + 1}') for i, roll in enumerate(delays)]
-            [self._pset.addPrimitive(roll, 1, name=f'q{i}') for i, roll in zip(self._delays, delays)]
+    def iniciatePrimitivesSets(self):
+        delays = [partial(_roll, i=i) for i in self._delays]
+        self._pset = gp.PrimitiveSet("main", self._nVar)
+        self._pset.addPrimitive(operator.mul, 2)
 
         return self._pset
 
