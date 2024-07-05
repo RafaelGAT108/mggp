@@ -1,4 +1,4 @@
-from typing import Literal, Tuple, Optional, Any
+from typing import Literal, Tuple, Optional, Any, List
 import numpy as np
 from base import Element
 from evolvers import EvolDefault
@@ -19,7 +19,7 @@ class MGGP:
                  nTerms: int = 15,
                  maxHeight: int = 15,
                  weights: tuple = (-1,),
-                 nDelays: float | Literal['fixed'] = 15,
+                 nDelays: int | List[int] = 15,
                  crossoverRate: float = 0.8,
                  mutationRate: float = 0.1,
                  populationSize: int = 100,
@@ -97,11 +97,11 @@ class MGGP:
     # @staticmethod
     def evaluation(self, ind) -> tuple[float]:
         try:
+
+            # if len(ind._theta) == 0:
             self.element.compileModel(ind)
             theta_value = ind.leastSquares(self.outputs, self.inputs)
-            ind._theta = list(theta_value)
-            # yp, yd = ind.predict("OSA", y, u)
-            # yp, yd = ind.predict("FreeRun", y, u)
+            ind._theta = theta_value
 
             if self.evaluationType == "MShooting":
                 yp, yd = ind.predict("MShooting", self.k, self.outputs, self.inputs)
