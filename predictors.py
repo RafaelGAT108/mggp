@@ -4,7 +4,7 @@ Created on Jun 2023
 
 @author: Henrique Castro
 """
-
+import multiprocessing
 import numpy as np
 import pandas as pd
 from numba import njit
@@ -155,7 +155,8 @@ def mimo_MShooting(ind, k, y, u):
     if len(u.shape) == 1:
         u = u.reshape(-1, 1)
 
-    n_batchs = int(np.floor(u.shape[0] / (ind.lagMax + 1 + k)))
+    # n_batchs = int(np.floor(u.shape[0] / (ind.lagMax + 1 + k)))
+    n_batchs = u.shape[0] // (ind.lagMax + 1 + k)
     N = ind.lagMax + 1 + k
     newshape = (n_batchs, ind.lagMax + 1 + k, 1)
 
@@ -190,3 +191,4 @@ def mimo_MShooting(ind, k, y, u):
 
         y0 = np.concatenate((y0, np.concatenate(aux, axis=2)), axis=1)
     return np.nan_to_num(y0.reshape(-1, y.shape[1]), nan=0), np.nan_to_num(yk.reshape(-1, y.shape[1]), nan=0)
+    # return y0.reshape(-1, y.shape[1]), yk.reshape(-1, y.shape[1])
