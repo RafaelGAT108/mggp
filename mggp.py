@@ -69,6 +69,8 @@ class MGGP:
             self.mode = "MISO"
         elif self.nInputs > 1 and self.nOutputs > 1:
             self.mode = "MIMO"
+        else:
+            raise Exception("MGGP doesn't work with SISO systems")
 
         self.element = Element(weights=self.weights,
                                nDelays=self.nDelays,
@@ -95,7 +97,7 @@ class MGGP:
         return arguments
 
     # @staticmethod
-    def evaluation(self, ind) -> tuple[float]:
+    def evaluation(self, ind: Individual) -> tuple[float]:
         try:
 
             # if len(ind._theta) == 0:
