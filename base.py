@@ -299,6 +299,16 @@ class IndividualMISO(Individual):
     def __init__(self, data=[]):
         super().__init__(data)
 
+    def predict(self, mode="OSA", *args):
+        if mode == "OSA":
+            return miso_OSA(self, *args)
+        if mode == "FreeRun":
+            return miso_FreeRun(self, *args)
+        if mode == "MShooting":
+            return miso_MShooting(self, *args)
+        else:
+            raise Exception("Choose a mode between: OSA, FreeRun, MShooting")
+
     def makeRegressors(self, y, u):
         if len(y.shape) == 1:
             y = y.reshape(-1, 1)
@@ -440,6 +450,16 @@ class IndividualFIR(Individual):
 
     def __init__(self, data=[]):
         super().__init__(data)
+
+    def predict(self, mode="OSA", *args):
+        if mode == "OSA":
+            return miso_OSA(self, *args)
+        if mode == "FreeRun":
+            return miso_FreeRun(self, *args)
+        if mode == "MShooting":
+            return miso_MShooting(self, *args)
+        else:
+            raise Exception("Choose a mode between: OSA, FreeRun, MShooting")
 
     def makeRegressors(self, y, u):
         if len(u.shape) == 1:
