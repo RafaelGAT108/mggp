@@ -1,6 +1,6 @@
 from typing import Literal, Tuple, Optional, Any, List
 import numpy as np
-from base import Element
+from base import Element, Individual
 from evolvers import EvolDefault
 import multiprocessing
 import time
