@@ -36,7 +36,7 @@ model.compile(optimizer='adam', loss='mse')
 
 model.summary()
 
-history = model.fit(X_train, y_train, epochs=20, validation_data=(X_test, y_test))
+history = model.fit(X_train, y_train, epochs=50, validation_data=(X_test, y_test))
 
 loss = model.evaluate(X_test, y_test)
 print(f"RMSE: {round(np.sqrt(loss), 6)}")
