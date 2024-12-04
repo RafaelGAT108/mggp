@@ -4,7 +4,15 @@ from base import Element, Individual
 from evolvers import EvolDefault
 import multiprocessing
 import time
+import warnings
+import random
+from abc import ABC, abstractmethod
+from deap import tools, base
+from copy import deepcopy
+from mutations import *
+from crossings import *
 
+warnings.filterwarnings("ignore")
 
 class MGGP:
 
@@ -52,9 +60,7 @@ class MGGP:
         self.generations = generations
         self.evaluationMode = evaluationMode
         self.evaluationType = evaluationType
-        if self.evaluationMode not in ["MSE", "MAPE", "RMSE"]:
-            raise Exception("Choose a measure between:\n" +
-                            "MSE, MAPE, or RMSE")
+
         self.crossoverRate = crossoverRate
         self.mutationRate = mutationRate
         self.populationSize = populationSize
@@ -64,6 +70,10 @@ class MGGP:
         self.weights = weights
         self.nDelays = nDelays
         self.maxHeight = maxHeight
+
+        if self.evaluationMode not in ["MSE", "MAPE", "RMSE"]:
+            raise Exception("Choose a measure between:\n" +
+                            "MSE, MAPE, or RMSE")
 
         if self.nInputs > 1 and self.nOutputs == 1:
             self.mode = "MISO"
@@ -82,12 +92,104 @@ class MGGP:
 
         self.element.renameArguments(self.buildArgumentsDict())
 
-        self.evolver = EvolDefault(element=self.element,
-                                   evaluate=self.evaluation,
-                                   popSize=self.populationSize,
-                                   elitePerc=self.elitePercentage,
-                                   CXPB=self.crossoverRate,
-                                   MTPB=self.mutationRate)
+        self._toolbox = base.Toolbox()
+        self._toolbox.register("evaluate", self.evaluation)
+
+        self._mutList = []
+        self._crossList = []
+        self._stats = self._createStatistics()
+        self._logbook = tools.Logbook()
+        self._logbook.header = 'gen', 'evals', 'fitness'
+        self._logbook.chapters['fitness'].header = 'min', 'avg', 'max'
+
+        self._hofSize = int(round(self.populationSize * (self.elitePercentage / 100)))
+        self._hof = tools.HallOfFame(self._hofSize)
+
+        self._toolbox.register("select", tools.selTournament, tournsize=2)
+
+        self.addMutation(MutGPOneTree)
+        self.addMutation(MutGPUniform)
+        self.addMutation(MutGPReplace)
+
+        self.addCrossOver(CrossHighUniform)
+        self.addCrossOver(CrossLowUniform)
+
+    def addMutation(self, mutation):
+        self._mutList.append(mutation(self.element))
+
+    def addCrossOver(self, crossover):
+        self._crossList.append(crossover(self.element))
+
+    def _delAttr(self, ind):
+        try:
+            del ind.fitness.values
+            del ind.funcs
+            del ind.kfuncs
+            del ind.lagMax
+        except AttributeError:
+            pass
+
+
+    def stream(self):
+        print(self._logbook.stream)
+
+    def initPop(self, seed=[]):
+        if len(seed) > self.populationSize: raise Exception('Seed exceeds population size!')
+        if seed == []:
+            self._pop = self.element._toolbox.population(self.populationSize)
+        else:
+            self._pop = self.element._toolbox.population(self.populationSize - len(seed))
+            self._pop += seed
+        invalid_ind = [ind for ind in self._pop if not ind.fitness.valid]
+        fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+        record = {'fitness': self._stats.compile(self._pop)}
+        self._logbook.record(gen=0, evals=len(invalid_ind), **record)
+        # print(self._logbook)
+        self._hof.update(self._pop)
+
+    def _createStatistics(self):
+        stats = tools.Statistics(lambda ind: ind.fitness.values[0])
+        stats.register("avg", np.mean)
+        stats.register("max", np.max)
+        stats.register("min", np.min)
+        return stats
+
+    def step(self, gen_number):
+        if self._pop == []:
+            raise Exception('Population must be initialized!')
+
+        offspring = [deepcopy(ind) for ind in self._toolbox.select(self._pop, self.populationSize - self._hofSize)]
+
+        for i in range(0, len(offspring) - 1, 2):
+            if np.random.random() < self.crossoverRate:
+                cross = random.choice(self._crossList)
+                offspring[i], offspring[i + 1] = cross.cross(offspring[i], offspring[i + 1])
+                self._delAttr(offspring[i])
+                self._delAttr(offspring[i + 1])
+
+        for i in range(len(offspring)):
+            if np.random.random() < self.mutationRate:
+                mut = random.choice(self._mutList)
+                offspring[i], = mut.mutate(offspring[i])
+                self._delAttr(offspring[i])
+
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+
+        self._pop = self._hof.items + offspring
+        self._hof.update(self._pop)
+
+        #---Record--Statistics-----------------------------------------------------
+        record = {'fitness': self._stats.compile(self._pop)}
+
+        self._logbook.record(gen=gen_number+1, evals=len(invalid_ind), **record)
+
 
     def buildArgumentsDict(self) -> dict:
         arguments = dict()
@@ -118,19 +220,17 @@ class MGGP:
     def run(self) -> None:
         # pool = multiprocessing.Pool(6)  # using 4 processor cores
         # self.evolver._toolbox.register("map", pool.map)
-        self.evolver._toolbox.register("map", map)
+        self._toolbox.register("map", map)
 
         init = time.time()
-        self.evolver.initPop()
-        self.evolver.stream()
+        self.initPop()
+        self.stream()
 
         for g in range(self.generations):
-            self.evolver.step()
-            self.evolver.stream()
+            self.step(g)
+            self.stream()
 
-        hof = self.evolver.getHof()
-        model = hof[0]
-
+        model = self._hof[0]
         self.element.compileModel(model)
         theta_value = model.leastSquares(self.outputs, self.inputs)
         model._theta = list(theta_value)
