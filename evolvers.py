@@ -27,7 +27,7 @@ class Evolver(ABC):
         self._popSize = popSize
 
         self._hof = None
-        self._element = element
+        self.element = element
 
         self._toolbox = base.Toolbox()
         self._toolbox.register("evaluate", evaluate)
@@ -37,10 +37,10 @@ class Evolver(ABC):
         self._generation = 0
 
     def addMutation(self, mutation):
-        self._mutList.append(mutation(self._element))
+        self._mutList.append(mutation(self.element))
 
     def addCrossOver(self, crossover):
-        self._crossList.append(crossover(self._element))
+        self._crossList.append(crossover(self.element))
 
     def _delAttr(self, ind):
         try:
@@ -73,12 +73,12 @@ class Evolver(ABC):
 
 
 class EvolDefault(Evolver):
-    def __init__(self, element=None, evaluate=None, popSize=50, elitePerc=10, CXPB=0.8, MTPB=0.1):
+    def __init__(self, element=None, evaluate=None, popSize=50, elitePercentage=10, crossoverRate=0.8, mutationRate=0.1):
         super().__init__(element, evaluate, popSize)
 
-        self._elitePerc = elitePerc
-        self._CXPB = CXPB
-        self._MTPB = MTPB
+        self.elitePercentage = elitePercentage
+        self.crossoverRate = crossoverRate
+        self.mutationRate = mutationRate
         #---Setup--Statistics------------------------------------------------------
         self._stats = self._createStatistics()
         self._logbook = tools.Logbook()
@@ -86,7 +86,7 @@ class EvolDefault(Evolver):
         self._logbook.header = header
         self._logbook.chapters['fitness'].header = 'min', 'avg', 'max'
 
-        self._hofSize = int(round(self._popSize * (self._elitePerc / 100)))
+        self._hofSize = int(round(self._popSize * (self.elitePercentage / 100)))
         self._hof = tools.HallOfFame(self._hofSize)
 
         self._toolbox.register("select", tools.selTournament, tournsize=2)
@@ -101,9 +101,9 @@ class EvolDefault(Evolver):
     def initPop(self, seed=[]):
         if len(seed) > self._popSize: raise Exception('Seed exceeds population size!')
         if seed == []:
-            self._pop = self._element._toolbox.population(self._popSize)
+            self._pop = self.element._toolbox.population(self._popSize)
         else:
-            self._pop = self._element._toolbox.population(self._popSize - len(seed))
+            self._pop = self.element._toolbox.population(self._popSize - len(seed))
             self._pop += seed
         invalid_ind = [ind for ind in self._pop if not ind.fitness.valid]
         fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
@@ -129,14 +129,14 @@ class EvolDefault(Evolver):
         offspring = [deepcopy(ind) for ind in self._toolbox.select(self._pop, self._popSize - self._hofSize)]
 
         for i in range(0, len(offspring) - 1, 2):
-            if np.random.random() < self._CXPB:
+            if np.random.random() < self.crossoverRate:
                 cross = random.choice(self._crossList)
                 offspring[i], offspring[i + 1] = cross.cross(offspring[i], offspring[i + 1])
                 self._delAttr(offspring[i])
                 self._delAttr(offspring[i + 1])
 
         for i in range(len(offspring)):
-            if np.random.random() < self._MTPB:
+            if np.random.random() < self.mutationRate:
                 mut = random.choice(self._mutList)
                 offspring[i], = mut.mutate(offspring[i])
                 self._delAttr(offspring[i])
