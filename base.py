@@ -163,12 +163,11 @@ class Element(object):
                     elif type(tree[i]) == gp.Terminal:
                         if branches == []:
                             lag = count
-                            model._terminals += str(tree[i].value) + '[i-%d] ' % (count + 1)
+                            model._terminals += str(tree[i].value) + '[i-%d] * ' % (count + 1)
                         else:
                             branches[-1][2] += 1
                             lag = count + sum([item[0] for item in branches])
-                            model._terminals += tree[i].value + '[i-%d] ' % (
-                                    count + 1 + sum([item[0] for item in branches]))
+                            model._terminals += tree[i].value + '[i-%d] * ' % (lag + 1)
                         if lag > lagMax:
                             lagMax = lag
                         count = 0
@@ -182,9 +181,10 @@ class Element(object):
         if self._mode == "MISO" or self._mode == "FIR":
             model.lagMax = checkOut(model)
         if self._mode == "MIMO":
-            for i, _ in enumerate(model):
+            aux = []
+            for i, out in enumerate(model):
                 model._terminals += 'Output %d:\n\n' % (i + 1)
-            aux = [checkOut(out) for out in model]
+                aux.append(checkOut(out))
             model.lagMax = max(aux)
 
     #---save-load-file-function---------------------------------------------------------
@@ -268,13 +268,57 @@ class Individual(list):
         pass
 
     def to_equation(self):
-        string = ''
-        for j, out in enumerate(self):
-            string += f'\n\n Output %d:\n y_{j + 1}[k] = {self.theta[j][0]:.4e} ' % (j + 1)
-            # for k, tree in enumerate(out):
-            #      string += f'+ {self.theta[j][k+1]}*{str(tree)} '
-            string += ''.join([f'+ {self.theta[j][k + 1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
-            string += '\n'
+        def checkbranch(branch):
+            if branch == []: return
+            if branch[-1][2] == branch[-1][1]:
+                del branch[-1]
+                if branch == []: return
+                branch[-1][2] += 1
+                return checkbranch(branch)
+            else:
+                return
+
+        def checkOut():
+            string = ''
+            for k, program in enumerate(self):
+                string += 'Output %d:\n\n' % (k + 1)
+                string += f'{self.theta[k][0]:.5e} + \n'
+                for j, tree in enumerate(program):
+                    i = 0
+                    branches = []
+                    count = 0
+                    string += f'{self.theta[k][j+1]:.5e} * '
+                    while i < len(tree):
+                        if re.search("q\d", tree[i].name):
+                            count += int(tree[i].name[1:])
+                        elif type(tree[i]) == gp.Primitive:
+                            branches.append([count, tree[i].arity, 0])
+                            count = 0
+                        elif type(tree[i]) == gp.Terminal:
+                            if branches == []:
+                                lag = count
+                                string += str(tree[i].value) + '[i-%d] * ' % (count + 1)
+                            else:
+                                branches[-1][2] += 1
+                                lag = count + sum([item[0] for item in branches])
+                                string += tree[i].value + '[i-%d] * ' % (lag + 1)
+
+                            count = 0
+                            checkbranch(branches)
+
+                        i += 1
+                    string = string[:-2] + '+ \n'
+                string += '\n'
+            return string
+
+        # string = ''
+        # for j, out in enumerate(self):
+        #     string += f'\n\n Output %d:\n y_{j + 1}[k] = {self.theta[j][0]:.4e} ' % (j + 1)
+        #     # for k, tree in enumerate(out):
+        #     #      string += f'+ {self.theta[j][k+1]}*{str(tree)} '
+        #     string += ''.join([f'+ {self.theta[j][k + 1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
+        #     string += '\n'
+        string = checkOut()
         return string
 
 
@@ -282,12 +326,13 @@ class Individual(list):
 @njit
 def theta_miso(p, yd):
     return np.linalg.inv(p.T @ p) @ p.T @ yd
+    # return np.linalg.lstsq(p, yd, rcond=None)[0]
 
 
 # @njit
 def theta_mimo(p, yd):
-    return np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
-
+    # return np.dot(np.dot(np.linalg.inv(np.dot(p.T, p)), p.T), yd)
+    return np.linalg.lstsq(p, yd, rcond=None)[0]
 
 @njit
 def theta_fir(p, yd):
@@ -421,15 +466,15 @@ class IndividualMIMO(Individual):
         # return np.array(self._theta)
         return self._theta
 
-    def to_equation(self):
-        string = ''
-        for j, out in enumerate(self):
-            string += f'\n\n Output %d:\n y_{j + 1}[k] = {self.theta[j][0]:.4e} ' % (j + 1)
-            # for k, tree in enumerate(out):
-            #      string += f'+ {self.theta[j][k+1]}*{str(tree)} '
-            string += ''.join([f'+ {self.theta[j][k + 1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
-            string += '\n'
-        return string
+    # def to_equation(self):
+    #     string = ''
+    #     for j, out in enumerate(self):
+    #         string += f'\n\n Output %d:\n y_{j + 1}[k] = {self.theta[j][0]:.4e} ' % (j + 1)
+    #         # for k, tree in enumerate(out):
+    #         #      string += f'+ {self.theta[j][k+1]}*{str(tree)} '
+    #         string += ''.join([f'+ {self.theta[j][k + 1]:.4e}*{str(tree)} ' for k, tree in enumerate(out)])
+    #         string += '\n'
+    #     return string
 
     def __str__(self):
         string = ''
