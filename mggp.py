@@ -11,6 +11,7 @@ from deap import tools, base
 from copy import deepcopy
 from mutations import *
 from crossings import *
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 warnings.filterwarnings("ignore")
 
@@ -150,8 +151,11 @@ class MGGP:
         # print(self._logbook)
         self._hof.update(self._pop)
 
+    def get_fitness_value(self, individual):
+        return individual.fitness.values[0]
+
     def _createStatistics(self):
-        stats = tools.Statistics(lambda ind: ind.fitness.values[0])
+        stats = tools.Statistics(self.get_fitness_value)
         stats.register("avg", np.mean)
         stats.register("max", np.max)
         stats.register("min", np.min)
@@ -234,9 +238,9 @@ class MGGP:
         self.element.compileModel(model)
         theta_value = model.leastSquares(self.outputs, self.inputs)
         model._theta = list(theta_value)
-        print(model)
-        # print(model.to_equation())
-        print(model._theta)
+        # print(model)
+        print(model.to_equation())
+        # print(model._theta)
 
         if all([value is not None for value in self.validation]):
             u_val, y_val = self.validation
