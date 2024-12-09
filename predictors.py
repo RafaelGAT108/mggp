@@ -5,10 +5,12 @@ Created on Jun 2023
 @author: Henrique Castro
 """
 import multiprocessing
+from concurrent.futures.thread import ThreadPoolExecutor
+
 import numpy as np
 import pandas as pd
 from numba import njit
-
+from concurrent.futures import ProcessPoolExecutor
 
 def miso_OSA(ind, y, u):
     """
@@ -81,6 +83,7 @@ def mimo_FreeRun(ind, y0, u):
 
     y = y0[:, :ind.lagMax + 1]
 
+    # TODO: Paralelizar esse loop
     for i in range(u.shape[0] - ind.lagMax):
         listV = []
         for v in y.T:
@@ -88,18 +91,51 @@ def mimo_FreeRun(ind, y0, u):
         for v in u.T:
             listV.append(v[i:i + ind.lagMax + 1].reshape(-1, 1))
 
+    #     aux = []
+    #     for o in range(len(ind)):
+    #         p = [np.ones((ind.lagMax + 1))]
+    #         for i in range(len(ind[o])):
+    #             func = ind._funcs[o][i]
+    #             out = func(*listV)
+    #             p.append(out.reshape(-1))
+    #         p = np.array(p).T[ind.lagMax:]
+    #         aux.append(np.dot(p, ind._theta[o].T))
+    #
+    #     y = np.vstack([y, np.array(aux).reshape(1, -1)])
+    # return y[-(y0.shape[0]+1):-1], y0
+
         aux = []
-        for o in range(len(ind)):
-            p = [np.ones((ind.lagMax + 1))]
-            for i in range(len(ind[o])):
-                func = ind._funcs[o][i]
-                out = func(*listV)
-                p.append(out.reshape(-1))
-            p = np.array(p).T[ind.lagMax:]
-            aux.append(np.dot(p, ind._theta[o].T))
+        with ThreadPoolExecutor() as executor:
+            # Submit individual tasks for each output
+            futures = [
+                executor.submit(compute_output, o, ind, listV)
+                for o in range(len(ind))
+            ]
+            # Collect results as they complete
+            aux = [future.result() for future in futures]
 
         y = np.vstack([y, np.array(aux).reshape(1, -1)])
-    return y[-(y0.shape[0]+1):-1], y0
+
+    return y[-(y0.shape[0] + 1):-1], y0
+
+
+def compute_output(o, ind, listV):
+    """
+    Computes the output for a specific output variable (o) in the model.
+    Arguments:
+        o     = Index of the output variable
+        ind   = C_Individual object
+        listV = List of regression vectors (inputs and outputs)
+    Returns:
+        Computed output for the given variable
+    """
+    p = [np.ones((ind.lagMax + 1))]
+    for j in range(len(ind[o])):
+        func = ind._funcs[o][j]
+        out = func(*listV)
+        p.append(out.reshape(-1))
+    p = np.array(p).T[ind.lagMax:]
+    return np.dot(p, ind._theta[o].T)
 
 
 def miso_MShooting(ind, k, y, u):
