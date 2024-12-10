@@ -1,17 +1,14 @@
-from typing import Literal, Tuple, Optional, Any, List
+from typing import Literal, Tuple, Optional, List
 import numpy as np
-from base import Element, Individual
-from evolvers import EvolDefault
-import multiprocessing
+from src.base import Element, Individual
 import time
 import warnings
-import random
-from abc import ABC, abstractmethod
-from deap import tools, base
+from deap import tools
 from copy import deepcopy
-from mutations import *
-from crossings import *
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from src.mutations import *
+from src.crossings import *
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 
 warnings.filterwarnings("ignore")
 
@@ -142,7 +139,14 @@ class MGGP:
             self._pop = self.element._toolbox.population(self.populationSize - len(seed))
             self._pop += seed
         invalid_ind = [ind for ind in self._pop if not ind.fitness.valid]
-        fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
+
+        if self.evaluationType == 'OSA':
+            fitnesses = list(tqdm(self._toolbox.map(self._toolbox.evaluate, invalid_ind), total=len(invalid_ind), desc="Evaluating Initial Population"))
+
+        else:
+            with ProcessPoolExecutor(max_workers=14) as executor:
+                fitnesses = list(tqdm(executor.map(self.evaluation, invalid_ind), total=len(invalid_ind), desc="Evaluating Initial Population"))
+
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
@@ -162,7 +166,7 @@ class MGGP:
         return stats
 
     def step(self, gen_number):
-        if self._pop == []:
+        if not self._pop:
             raise Exception('Population must be initialized!')
 
         offspring = [deepcopy(ind) for ind in self._toolbox.select(self._pop, self.populationSize - self._hofSize)]
@@ -181,7 +185,16 @@ class MGGP:
                 self._delAttr(offspring[i])
 
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        fitnesses = self._toolbox.map(self._toolbox.evaluate, invalid_ind)
+
+        if self.evaluationType == 'OSA':
+            fitnesses = list(tqdm(self._toolbox.map(self._toolbox.evaluate, invalid_ind), total=len(invalid_ind),
+                                  desc="Evaluating Population"))
+
+        else:
+            with ProcessPoolExecutor(max_workers=14) as executor:
+                fitnesses = list(tqdm(executor.map(self.evaluation, invalid_ind), total=len(invalid_ind),
+                                      desc="Evaluating Population"))
+
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
