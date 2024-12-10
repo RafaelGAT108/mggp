@@ -13,10 +13,10 @@ def create_sequences(database, lag):
     return xs, ys
 
 
-df_train = pd.read_csv("F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level3.csv").to_numpy()
+df_train = pd.read_csv("../F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level3.csv").to_numpy()
 database_train = df_train[:, :5]
 
-df_test = pd.read_csv("F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level2_Validation.csv").to_numpy()
+df_test = pd.read_csv("../F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level2_Validation.csv").to_numpy()
 database_test = df_test[:, :5]
 
 lag_length = 5

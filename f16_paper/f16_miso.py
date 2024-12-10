@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-# from numba import njit
 import pandas as pd
 
 sys.path.insert(1, 'MGGP/')
@@ -13,7 +12,6 @@ from src.base import Element
 from src.evolvers import EvolDefault
 import multiprocessing
 
-# from multiprocessing.pool import ThreadPool
 # def calculate_result(k):
 #     if k >= 1:
 #         model = 1 + y[k - 1] + u[k] * y[k - 1] + u[k]
@@ -39,17 +37,17 @@ import multiprocessing
 #
 # y, u = sys(1003)
 
-df = pd.read_csv("F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level3.csv").to_numpy()
-# df = pd.read_csv("F16GVT_Files/BenchmarkData/F16Data_SineSw_Level3.csv").to_numpy()
-u, y = (df[:, :2], df[:, 2:5])
+df = pd.read_csv("../F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level3.csv").to_numpy()
+u, y = (df[:, :2], df[:, 4:5])
 
-element = Element(weights=(-1,), nDelays=15, nInputs=2, nOutputs=3,
-                  nTerms=15, maxHeight=15, mode="MIMO")
-element.renameArguments({'ARG0': 'y1', 'ARG1': 'y2', 'ARG2': 'y3', 'ARG3': 'u1', 'ARG4': 'u2'})
+element = Element(weights=(-1,), nDelays=15, nInputs=2, nOutputs=1,
+                  nTerms=15, maxHeight=5, mode="MISO")
+element.renameArguments({'ARG0': 'y1', 'ARG1': 'u1', 'ARG2': 'u2'})
+# element.renameArguments({'ARG0': 'u1', 'ARG1': 'u2', 'ARG2': 'u3'})
 # element.renameArguments({'ARG0': 'y1', 'ARG1': 'y2', 'ARG2': 'u1', 'ARG3': 'u2'})
 
 
-k = 5
+k = 100
 
 
 def evaluation(ind):
@@ -57,9 +55,8 @@ def evaluation(ind):
         element.compileModel(ind)
         theta_value = ind.leastSquares(y, u)
         ind._theta = list(theta_value)
-        # yp, yd = ind.predict("OSA", y, u)
-        yp, yd = ind.predict("MShooting", k, y, u)
-        # yp, yd = ind.predict("FreeRun", y, u)
+        yp, yd = ind.predict("OSA", y, u)
+        # yp, yd = ind.predict("MShooting", k, y, u)
         error = ind.score(yd, yp, "RMSE")
         return error,
     except np.linalg.LinAlgError:
@@ -71,12 +68,9 @@ evolver = EvolDefault(element=element, evaluate=evaluation,
 
 if __name__ == "__main__":
 
-    pool = multiprocessing.Pool(6)  # using 4 processor cores
+    pool = multiprocessing.Pool()  # using 4 processor cores
     evolver._toolbox.register("map", pool.map)
-
-    # pool = ThreadPool(processes=6)
-    # evolver._toolbox.register("map", pool.apply_async)
-    # evolver._toolbox.register("map", map)
+    #evolver._toolbox.register("map", map)
     init = time.time()
     evolver.initPop()
     evolver.stream()
@@ -93,17 +87,16 @@ if __name__ == "__main__":
     theta_value = model.leastSquares(y, u)
     model._theta = list(theta_value)
     print(model)
-    print(model.to_equation())
+    print(model._theta)
     print(f"time: {round(end - init, 3)} seg")
     del y, u
 
-    df = pd.read_csv("F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level2_Validation.csv").to_numpy()
-    # df = pd.read_csv("F16GVT_Files/BenchmarkData/F16Data_SineSw_Level2_Validation.csv").to_numpy()
-    u, y = (df[:, :2], df[:, 2:5])
+    df = pd.read_csv("../F16GVT_Files/BenchmarkData/F16Data_FullMSine_Level2_Validation.csv").to_numpy()
+    u, y = (df[:, :2], df[:, 4:5])
 
-    # yp, yd = model.predict("OSA", y, u)
-    yp, yd = model.predict("MShooting", k, y, u)
-    error = round(model.score(yd, yp, "RMSE"), 6)
+    yp, yd = model.predict("OSA", y, u)
+    # yp, yd = model.predict("MShooting", k, y, u)
+    error = round(model.score(yd, yp, "RMSE"), 4)
     print(f"RMSE in validation dataset (LEVEL2): {error}")
 
     # plt.figure(figsize=(10, 5))
