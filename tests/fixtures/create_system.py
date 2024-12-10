@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from base import Element
+from src.base import Element
 
 @pytest.fixture
 def sys(N):
