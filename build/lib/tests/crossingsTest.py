@@ -5,8 +5,8 @@ Created on Apr 2023
 @author: Henrique Castro
 """
 
-from base import Element
-from crossings import CrossLowOnePoint,CrossLowUniform,CrossHighOnePoint,CrossHighUniform
+from src.base import Element
+from src.crossings import CrossLowOnePoint,CrossLowUniform,CrossHighOnePoint,CrossHighUniform
 from copy import deepcopy
 
 """
