@@ -6,14 +6,12 @@ Created on Fri Dec 15 12:31:54 2023
 """
 
 import sys
-from numba import njit
+
 sys.path.insert(1, 'MGGP/')
 import time
 import numpy as np
-import matplotlib.pyplot as plt
-from base import Element
-from evolvers import EvolDefault
-import multiprocessing
+from src.base import Element
+from src.evolvers import EvolDefault
 from sklearn.metrics import mean_squared_error
 
 '''
