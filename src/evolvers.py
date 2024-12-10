@@ -6,9 +6,7 @@ Created on Mon Apr 24 15:35:02 2023
 """
 import warnings
 import numpy as np
-import random
-from abc import ABC, abstractmethod
-from deap import tools, base
+from deap import tools
 from copy import deepcopy
 from mutations import *
 from crossings import *
