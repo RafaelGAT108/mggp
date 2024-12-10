@@ -6,8 +6,7 @@ Created on Jun 2023
 """
 
 import numpy as np
-from base import Element
-from sklearn.metrics import mean_squared_error
+from src.base import Element
 
 
 def sys(N):
