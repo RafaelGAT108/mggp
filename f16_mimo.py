@@ -9,8 +9,8 @@ sys.path.insert(1, 'MGGP/')
 import time
 import numpy as np
 # import matplotlib.pyplot as plt
-from base import Element
-from evolvers import EvolDefault
+from src.base import Element
+from src.evolvers import EvolDefault
 import multiprocessing
 
 # from multiprocessing.pool import ThreadPool

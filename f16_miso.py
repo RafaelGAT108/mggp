@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from numba import njit
 import pandas as pd
 
 sys.path.insert(1, 'MGGP/')
@@ -9,8 +8,8 @@ sys.path.insert(1, 'MGGP/')
 import time
 import numpy as np
 # import matplotlib.pyplot as plt
-from base import Element
-from evolvers import EvolDefault
+from src.base import Element
+from src.evolvers import EvolDefault
 import multiprocessing
 
 # def calculate_result(k):
