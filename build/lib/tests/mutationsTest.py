@@ -5,8 +5,8 @@ Created on Mon Apr 24 16:56:36 2023
 @author: henrique
 """
 
-from base import Element
-from mutations import MutGPOneTree, MutGPUniform, MutGPReplace
+from src.base import Element
+from src.mutations import MutGPOneTree, MutGPUniform, MutGPReplace
 from copy import deepcopy
 
 """
