@@ -9,6 +9,7 @@ import pickle
 from functools import partial
 from abc import ABC, abstractmethod
 from typing import List
+import sys
 
 from deap import gp, creator, base, tools
 import operator
@@ -17,8 +18,8 @@ import re
 import warnings
 from sklearn.metrics import mean_squared_error
 from numba import njit, cuda
-from predictors import miso_OSA, miso_FreeRun, miso_MShooting
-from predictors import mimo_OSA, mimo_FreeRun, mimo_MShooting
+from src.predictors import miso_OSA, miso_FreeRun, miso_MShooting
+from src.predictors import mimo_OSA, mimo_FreeRun, mimo_MShooting
 
 warnings.filterwarnings('ignore')
 
@@ -133,8 +134,30 @@ class Element(object):
 
         if self._mode == 'MIMO':
             model._funcs = [[gp.compile(tree, self.pset) for tree in out] for out in model]
+            # model._funcs = [[self._compile_to_function(tree, self.pset) for tree in out] for out in model]
 
         self._setModelLagMax(model)
+
+    def _compile_to_function(self, expr, pset):
+        code = str(expr)
+        if len(pset.arguments) > 0:
+            args = ",".join(arg for arg in pset.arguments)
+            code = f"def generated_function({args}):\n    return {code}"
+
+        local_scope = {}
+        try:
+            # Use exec para definir a função no escopo local
+            exec(code, pset.context, local_scope)
+            # Retorne a função gerada
+            return local_scope["generated_function"]
+        except MemoryError:
+            _, _, traceback = sys.exc_info()
+            raise MemoryError(
+                "DEAP: Error in tree evaluation: Python cannot evaluate a tree higher than 90. "
+                "To avoid this problem, you should use bloat control on your operators. "
+                "See the DEAP documentation for more information. "
+                "DEAP will now abort."
+            ).with_traceback(traceback)
 
     def _setModelLagMax(self, model):
         def checkbranch(branch):
