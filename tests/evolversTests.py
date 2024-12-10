@@ -5,9 +5,8 @@ Created on Apr 2023
 @author: Henrique Castro
 """
 
-from base import Element
-from evolvers import EvolDefault
-from copy import deepcopy
+from src.base import Element
+from src.evolvers import EvolDefault
 import numpy as np
 import multiprocessing
 import time
