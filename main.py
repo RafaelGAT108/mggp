@@ -14,9 +14,9 @@ if __name__ == '__main__':
                 validation=(u_val, y_val),
                 nDelays=[1, 2, 3, 5, 10, 15, 25, 50],
                 # nDelays=2,
-                generations=10,
+                generations=50,
                 evaluationMode="RMSE",
-                k=10,
+                k=100,
                 evaluationType="MShooting")
 
     mggp.run()
