@@ -251,9 +251,14 @@ class MGGP:
         self.element.compileModel(model)
         theta_value = model.leastSquares(self.outputs, self.inputs)
         model._theta = list(theta_value)
-        # print(model)
-        print(model.to_equation())
-        # print(model._theta)
+        
+        try:
+            print(model.to_equation())
+        except:
+            print("----------- Model -----------")
+            print(model)
+            print("----------- Theta -----------")
+            print(model._theta)
 
         if all([value is not None for value in self.validation]):
             u_val, y_val = self.validation
